@@ -1,6 +1,6 @@
 # Jim's Claude Skills
 
-A collection of Claude Code skills I use every day. Install any of them to get the same workflows in your own projects.
+A collection of Claude Code skills I use regularly and refine over time. Install any of them to get the same workflows in your own projects.
 
 ## How to install
 
