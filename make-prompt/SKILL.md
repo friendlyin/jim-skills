@@ -25,7 +25,7 @@ Golden rule: a colleague with no context should be able to follow it. If they'd 
 - Be concise. Assume LLM already knows basics.
 - Be specific about output, format, and constraints. Vague briefs produce vague results.
 - Tell LLM what to do, not what not to do. "Write flowing prose" beats "don't use bullets."
-- Use 3 to 5 positive examples for anything format-sensitive. Wrap each in `<example>` tags so they don't blur with instructions.
+- Use examples selectively, not by default. Add 1 to 2 short positive examples only when instructions alone may leave ambiguity about format, tone, or edge-case handling. For rigid or high-stakes formats where consistency matters, use up to 3 to 5 examples only if they are clearly relevant, diverse, and measurably improve reliability. Keep examples minimal and pattern-focused so the model learns the structure without anchoring on unnecessary content. Wrap examples in `<example>` tags so they don't blur with instructions.
 - Use XML tags when the prompt mixes instructions, context, examples, and inputs. Names should be consistent and descriptive (`<instructions>`, `<context>`, `<input>`).
 - Steps in order? Use numbered list.
 - Add the why. "Use a warm tone because users are nervous first-timers" beats "Use a warm tone."
@@ -60,8 +60,7 @@ description: <description>
 ### Body
 
 - Keep under **500 lines** for optimal performance.
-- **Progressive disclosure.** The body is an overview. Link out to `reference/*.md` or `EXAMPLES.md` files for detail. Keep links **one level deep** from `SKILL.md`, since LLM may not chase nested references.
-- Reference files over 100 lines need a **table of contents** at the top.
+- Keep the skill as a single `SKILL.md` file. If examples are needed, include them in the file itself and keep them compact.
 - Set a **degree of freedom** that matches the task:
   - *High* (list instructions) when many approaches work.
   - *Medium* (template scripts with parameters) when there's a preferred pattern.
@@ -70,7 +69,7 @@ description: <description>
 - **Consistent terminology.** Pick one term and use it throughout.
 - Always **forward slashes** in paths, even on Windows.
 - For MCP tools, always use **`ServerName:tool_name`**.
-- Multi-step workflow? Give a **checklist** LLM can tick off.
+- Multi-step workflow? Give a **checklist** LLM can copy and tick off.
 - Quality-critical? Build a **feedback loop**. Common pattern: Run validator → fix errors → repeat.
 
 ## When to ask follow-up questions
@@ -96,5 +95,19 @@ Don't try to write a great prompt or skill from a vague brief. Ask questions to 
 4. Implement improvements only if asked.
 
 Keep the review short. Don't echo the original back to the user.
+
+## Where to save new skills
+
+Save every new skill to `~/.agents/skills/<skill-name>/SKILL.md`. After saving, create a symlink in `~/.claude/skills/` so tools that scan that directory (Claude Code, Conductor, etc.) can find it.
+
+```bash
+mkdir -p ~/.agents/skills/<skill-name>
+# ... write the SKILL.md ...
+ln -s "../../.agents/skills/<skill-name>" ~/.claude/skills/<skill-name>
+```
+
+The symlink path must be relative (`../../.agents/skills/<name>`), not absolute, so it survives home-directory moves.
+
+Do not write skill files directly into `~/.claude/skills/` — that directory holds only symlinks.
 
 ---
