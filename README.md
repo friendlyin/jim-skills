@@ -62,7 +62,7 @@ curl -o ~/.agents/skills/"$SKILL"/SKILL.md \
 
 ### [`make-requirements-with-user`](./make-requirements-with-user/SKILL.md)
 
-Turns rough notes into a structured, reviewable requirements document through an iterative clarification loop. Useful when you want an agent to help scope a feature, bug fix, or development iteration before implementation starts.
+Turns rough notes into a developer-ready requirements folder through an iterative clarification loop. It produces one or more focused requirement files plus a QA test-case file for the feature, so the output is ready for both implementation and post-build validation.
 
 Install:
 

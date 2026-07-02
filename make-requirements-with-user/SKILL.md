@@ -1,25 +1,25 @@
 ---
 name: make-requirements-with-user
-description: Turn raw user notes into a complete, structured requirements document through iterative clarification. Use when the user explicitly invokes this skill to scope a feature, bug fix, or development iteration before any code is written.
+description: Turn raw user notes into a complete, developer-ready requirements folder through iterative clarification. Produces one or more focused requirement files plus a QA test-case file per feature. Use when the user explicitly invokes this skill to scope a feature, bug fix, or development iteration before any code is written.
 disable-model-invocation: true
 ---
 
 # Make Requirements with User
 
-A multi-cycle workflow: codebase review → draft with recommendations → user feedback → revise → finalise. Most non-trivial tasks need 2-3 cycles. The document is the source of truth; chat history is not a substitute.
+A multi-cycle workflow: codebase review → draft with recommendations → user feedback → revise → finalise. Most non-trivial tasks need 2-3 cycles. The requirements folder is the source of truth; chat history is not a substitute.
 
-**One file, start to finish.** There is a single document per feature: `prd/[slug].md`. You do not create a separate `-draft` file and you never end up with two files for one feature. The same file is the working draft during cycles and the finalised spec at the end — finalising restructures it in place, it does not spawn a second file. Two files for one feature means an ambiguous source of truth and clutter in `prd/`; never do it.
+**One folder per feature.** Everything for a feature lives under `prd/[slug]/`. During clarification there is a single working file, `prd/[slug]/_working.md`. At finalisation that becomes one or more clean requirement files plus a `qa-test-cases.md`, all in the same folder. Never leave a `-draft` companion and never scatter one feature across sibling folders.
 
-**One item, one place.** Every question or decision appears exactly once, in the section it belongs to, and that single entry is where the user comments and where its status lives. Never restate a question in a second list, a summary, or a separate "open items" section — duplication wastes the user's reading time and makes it unclear which copy is authoritative. When something needs tracking across cycles, track it *on the item itself* with a status line, not by copying it elsewhere.
+**One item, one place.** Every question or decision appears exactly once, in the section it belongs to, and that single entry is where the user comments and where its status lives. Never restate a question in a second list, a summary, or a separate "open items" section — duplication wastes the user's reading time and makes it unclear which copy is authoritative. Track status *on the item itself* with a `Status:` line, not by copying it elsewhere.
 
 ## Phase checklist
 
 1. Receive raw input.
-2. Review the codebase silently.
-3. Write `prd/[slug].md` with a DRAFT banner and Sections A and B. Each item carries an inline `**Status:**` line.
+2. Review the codebase silently — including how each behaviour can be forced/observed, for the QA file.
+3. Create `prd/[slug]/_working.md` with a DRAFT banner: a **Captured requirements** part (what the user already specified, restated) plus **Open items** (Sections A and B) for the genuine decisions. Each open item carries an inline `**Status:**` line.
 4. Post a short chat message and stop.
-5. Iterate on user feedback in the same file — update each item's status in place; append any newly-surfaced item to A or B.
-6. When every item is resolved, finalise **in the same file**: prepend the clean developer-facing spec, demote the A/B Q&A into a "Decision log & rationale" section below, flip the banner.
+5. Iterate on user feedback in the same working file — update each item's status in place; append any newly-surfaced item to A or B.
+6. When every item is resolved and the user approves, finalise: replace the working file with clean requirement file(s) + `qa-test-cases.md` in the folder, then delete `_working.md`.
 
 ## Decision principles
 
@@ -48,18 +48,46 @@ Before drafting, silently:
 - Locate existing features, data models, and code paths relevant to the request.
 - Identify what already exists vs. what's new.
 - For any reported bug, find the suspect code and form an initial hypothesis (do not commit to it).
+- Note **testability hooks** for the QA file: feature flags / remote-config values that force a state, mock endpoints, server handlers to call with mock data, and seedable accounts or fixtures. This lets the QA cases be concrete.
 
-Questions in the draft must be grounded in what you actually found, not generic.
+This review grounds your questions and your QA cases. It stays **internal** — it does not become a prescriptive codebase map in the finalised documents.
 
 ## Phase 3 — The draft
 
-Write to `prd/[feature-slug].md` (the one and only file for this feature) and open it with a banner: `Status: **DRAFT — cycle N.** Not yet finalised.` The document is the source of truth: every decision lives here in full detail, not summarised away because "we covered it in chat". A reader joining at cycle 3 should understand every decision from the file alone.
+Write to `prd/[slug]/_working.md` and open it with a banner: `Status: **DRAFT — cycle N.** Not yet finalised.` The document is the source of truth: every decision lives here in full detail, not summarised away because "we covered it in chat". A reader joining at cycle 3 should understand every decision from the file alone.
 
-Each item in A and B is **self-contained and actionable**: it holds the question, your recommendation, and its own status. The user reads and answers it in one place; you update its status there. This single entry is the source of truth for that decision through every cycle — there is no separate open-items list to keep in sync.
+The draft has **two parts with different jobs**, and keeping them apart is what makes the user's review fast:
 
-### Section A — Clarifying questions (with recommendations)
+1. **Captured requirements** — your structured restatement of everything the user *already specified*, including grammar-polished copy. The user skims this to catch anything you got wrong; they do **not** answer it item by item.
+2. **Open items** (Sections A and B) — only the genuine decisions that need the user's input. This is where the user spends their time, so it stays short and high-value.
 
-Ask about product behaviour, UX, and scope. Skip low-level technical choices (where to put a field, what to name a variable) — make those silently.
+### Captured requirements
+
+Restate what the user gave you — organised, clarified, grouped — as **statements, not questions**. Fold your grammar/clarity/copy polish in here (see "Copy polish" below). This part is skim-only: it never carries `Status: open` and never blocks finalisation. If you got something wrong, the user edits it inline.
+
+Never turn a captured requirement into an open item just to "confirm" it. A restatement the user could only answer with "yes, that's what I said" wastes their time — it belongs here as a captured statement, not in Section A. This is the single most important rule of the draft: **echoing the user's own requirement back as a question is the failure mode to avoid.**
+
+Group captured requirements the way the finalised files will split (by concern), so the eventual file boundaries are visible early.
+
+### What counts as an open item
+
+An item belongs in Section A/B **only if the user's answer could change the spec.** When it genuinely could, ask — losing something important from the plan is worse than one extra question, so when in doubt, raise it. The one thing you must never raise is an item whose only content restates what the user already decided.
+
+Kinds of question that usually earn their place (illustrative, **not** a closed list — raise any other consequential question you spot, even if it fits none of these):
+
+- **Gap** — something needed to implement that the user didn't specify (a missing option, an unstated default, an unlisted trigger point).
+- **Ambiguity / contradiction** — the input is unclear or conflicts with itself.
+- **Edge case / risk** — an unhandled "what happens when…".
+- **Conflict** — contradicts existing code behaviour or a previously finalised requirement.
+- **Deviation** — your recommendation differs from what the user asked, so they should weigh in.
+
+### Copy polish
+
+When the user supplies UI strings, fix grammar/clarity/length silently and show the result in **Captured requirements**, inviting inline edits. Do not create an open item that asks the user to "confirm my polished copy" — present it as captured and let them tweak it if they want.
+
+### Section A — Open questions (with recommendations)
+
+Ask about product behaviour, UX, and scope. Skip low-level technical choices (where to put a field, what to name a variable) — make those silently. Each Section A item is self-contained: question, recommendation, its own status — the user answers it in one place and you update its status there.
 
 Format each item as below. The `**Status:**` line starts as `open` and you flip it to `resolved` (with the decision) once the user answers — in place, on the same item.
 
@@ -87,7 +115,7 @@ Format each item as below. The `**Status:**` line starts as `open` and you flip 
 **Status:** open — awaiting feedback.
 </example>
 
-After the user answers, the item becomes (same place, no copy made elsewhere):
+After the user answers, the item flips in place (no copy made elsewhere):
 
 <example>
 ### 1. Empty-state copy on the dashboard
@@ -116,75 +144,78 @@ Why: Simplicity.
 
 ### Tracking open vs resolved — no separate list
 
-There is **no Section C / "open items" list.** An item's openness lives on the item itself, via its `**Status:**` line. To see what still blocks finalisation, scan for `Status: open`. Re-listing those questions in a second section is exactly the duplication this workflow forbids: it forces the user to read the same question twice and creates two places that can disagree.
+There is **no Section C / "open items" list.** An item's openness lives on the item itself, via its `**Status:**` line. To see what still blocks finalisation, scan for `Status: open`. Re-listing those questions in a second section is exactly the duplication this workflow forbids.
 
-- A **new** question that surfaces mid-cycle is appended to Section A (or B if it's a technical trade-off) as a normal item with `Status: open` — not collected into a separate bucket.
+- A **new** question that surfaces mid-cycle is appended to Section A (or B if it's a technical trade-off) as a normal item with `Status: open`.
 - An item the user has answered flips to `Status: resolved — <decision>` in place.
-- The draft is **ready to finalise when no item is still `Status: open`** (and the user has approved). That replaces the old "Section C is empty" signal.
+- The draft is **ready to finalise when no item is still `Status: open`** (and the user has approved).
 
 ## Phase 4 — Notify and wait
 
 Post this in chat, then stop:
 
 ```
-Draft requirements at [path]. Each item has my recommended answer and a Status line. Reply with:
-- "approve all" to accept every recommendation,
-- per-item approvals or overrides,
-- or inline edits in the file.
-Items still marked "Status: open" are the ones needing your input.
+Draft at prd/[slug]/_working.md, in two parts:
+- Captured requirements — my restatement of what you already specified (incl. polished copy). Skim it; edit inline if I got anything wrong. No item-by-item reply needed.
+- Open items (Sections A/B) — the decisions I actually need from you, each with my recommendation and a Status line. This is where your time goes.
+Reply with "approve all", per-item answers/overrides, or inline edits. Items marked "Status: open" are what's blocking finalisation.
 ```
 
 ## Phase 5 — Iterate
 
-Update the same `prd/[slug].md` file in place. Show what changed in chat and stop again. Keep iterating until the user explicitly approves finalisation and no item is still `Status: open`.
+Update the same `prd/[slug]/_working.md` file in place. Show what changed in chat and stop again. Keep iterating until the user explicitly approves finalisation and no item is still `Status: open`.
 
 Update each answered item's `**Status:**` line in place; never copy a question into a tracking list. If a new question surfaces, append it to Section A or B as a normal `Status: open` item.
 
-When the user paraphrases a refinement in chat, translate it into the concrete spec inside the draft — exact wording, file paths, function names, example pairs. The chat paraphrase is not the spec.
+When the user paraphrases a refinement in chat, translate it into the concrete spec inside the draft — exact wording, example pairs, observable behaviour. The chat paraphrase is not the spec.
 
 If the user says "developer decides" on any item, record it as: *developer to implement using the simplest approach that satisfies the surrounding requirements*.
 
 ## Phase 6 — Finalise
 
-Reached when no item is still `Status: open` and the user has approved. Finalise **in the same `prd/[slug].md` file** — do not create a second file. Restructure it into two parts:
+Reached when no item is still `Status: open` and the user has approved. Finalise inside `prd/[slug]/`, then delete `_working.md`.
 
-1. **The spec** (top of file) — clean, developer-facing, only actionable work.
-2. **`## Decision log & rationale (historical)`** (appended below, after a `---`) — the Section A/B Q&A with each item's recommendation, `Why:`, the user's answer, and rejected alternatives. This preserves the reasoning and provenance without cluttering the spec.
+### Step 1 — Decide the split
 
-Flip the banner to `Status: Ready for development`.
+Group the resolved work into concerns. **Split test:** a concern gets its own file when it could be built, reviewed, and shipped independently of the others *without reading them*. Tightly-coupled work stays in one file.
 
-**The spec must be self-sufficient.** A developer must be able to implement from the spec section alone, without scrolling into the decision log. So promote the reusable essentials *up* into the spec:
+- **Single concern** → one file: `prd/[slug]/requirements.md`.
+- **Multiple independent concerns** → one file each, numbered by suggested build order: `prd/[slug]/01-[concern].md`, `prd/[slug]/02-[concern].md`, … plus `prd/[slug]/index.md` (summary, list of parts, shared constraints).
 
-- A short **Codebase touchpoints** list — the real files/functions/tables the work touches (from your Phase 2 review). This is the part of the old "context" block developers actually need; don't leave it stranded in the log.
-- A one-line rationale on any **non-obvious** decision (so a developer who disagrees sees why before re-opening it). Deep reasoning and rejected alternatives stay in the log.
+A folder with a single requirements file is fine and expected for coupled work.
 
-The spec includes only actionable work. Things decided as "do nothing", "deferred", or "out of scope" get a one-line mention in Scope → Out of scope (so they read as deliberate), with any detail living in the log.
+### Step 2 — Write the requirement file(s)
 
-Spec template:
+**The requirement files are the only developer-facing artifact — there is no decision log.** Build the requirement bodies from the **Captured requirements** plus the resolved decisions from Sections A/B. Everything a developer needs must be in the body. Do not demote the Section A/B questions into a log; **delete the questions themselves** at finalisation. Preserve intent as a **one-line `Why:`** on any non-obvious requirement — enough for a developer agent to understand what we're trying to achieve, not the full debate.
+
+**Self-sufficiency sweep (required before flipping any banner):** re-read each requirement file and confirm every behaviour-affecting decision is stated in the body, not merely implied by a resolved question you just deleted. If something load-bearing lived only in the Q&A, write it into the requirements now.
+
+**Requirements describe behaviour, not the call graph.** State observable behaviour, constraints, and acceptance criteria. Do **not** prescribe where new code goes, internal call sequences, or which private helper to invoke — the developer owns implementation. Reference an existing file/function/table **only when a requirement is about that specific entity** (e.g. "rename the string `createStory.stopAndReview`"), never to dictate placement of new code. There is **no `Codebase touchpoints` section**.
+
+The requirement files include only actionable work. Things decided as "do nothing", "deferred", or "out of scope" get a one-line mention in Scope → Out of scope so they read as deliberate.
+
+Requirement file template:
 
 ```
-# Requirements: [Feature name]
+# Requirements: [Concern name]
 Date: YYYY-MM-DD
 Status: Ready for development
+Part of: [Feature name] (see index.md)   ← omit this line if single-file
 
 ## Summary
-[2-4 sentence overview]
+[2-4 sentences. Do not restate this inside the requirements below.]
 
 ## Scope
 ### In scope
 ### Out of scope
 
-## Codebase touchpoints
-[Key files / functions / tables the implementation touches, from Phase 2 review.
-Each with a few words on its role. Lets a developer start without re-discovering the map.]
-
 ## Functional requirements
-[Numbered, specific, testable behaviours. One-line rationale inline on non-obvious ones.]
+[Numbered, specific, observable, testable behaviours. One-line `Why:` on non-obvious
+ones. No paths for new code, no internal call sequences.]
 
 ## Items requiring investigation before fix
-[Bugs with unverified causes. For each: symptom, suspected cause, investigation step,
-then the fix only after the cause is confirmed. Anything with a confirmed cause
-goes under Functional requirements instead.]
+[Only if bugs with unverified causes: symptom, suspected cause, investigation step,
+then the fix only after the cause is confirmed.]
 
 ## Non-functional requirements
 [Performance, accessibility, security, compatibility — only if relevant.]
@@ -195,32 +226,77 @@ goes under Functional requirements instead.]
 ## Edge cases & error handling
 
 ## Open decisions
-[Should be empty if Phase 6 was reached cleanly. Record any remaining
-unresolved decision explicitly rather than leaving it implicit.]
-
-## Implementation notes
-[Agreed approach for any Section B items.]
-
----
-
-## Decision log & rationale (historical)
-[The Section A/B items: question, recommendation, Why, user's answer, rejected
-alternatives. Kept for provenance — not needed to implement the spec above.]
+[Empty if Phase 6 was reached cleanly. Record any remaining unresolved decision
+explicitly rather than leaving it implicit.]
 ```
 
-After restructuring the file, post:
+`index.md` template (multi-file only):
 
 ```
-Requirements finalised at [path]. Ready to plan the implementation when you are.
+# [Feature name]
+Date: YYYY-MM-DD
+Status: Ready for development
+
+## Summary
+[2-4 sentence overview of the whole feature.]
+
+## Parts
+- 01-[concern].md — one line on what it covers
+- 02-[concern].md — one line on what it covers
+
+## Shared constraints
+[Limits, flags, cross-cutting rules referenced by more than one part.]
+
+## QA
+See qa-test-cases.md.
+```
+
+### Step 3 — Write `qa-test-cases.md`
+
+One file per feature folder, addressed to a **browser-capable QA agent that validates the feature after development** — not the developer. Group cases under a heading per functionality block, matching the requirement file/section they validate, so the mapping to requirements is explicit (e.g. `## 01 — Demo-first funnel`).
+
+Every functional requirement should map to at least one case. If a requirement can't be expressed as something observable, it is under-specified or belongs in non-functional requirements.
+
+Each case:
+
+<example>
+### QA-1.1 — Anonymous user hits the demo interaction cap
+
+**Validates:** 01-demo-first-funnel.md FR 2.4
+
+**Setup:** Set remote-config `onboarding_variant_web = demo_first`. Start from a clean browser (no session). Use the mock interviewer handler that returns a canned response per turn.
+
+**Steps:**
+1. Open the app, tap "Get started".
+2. Submit 3 user responses in the demo interview.
+3. Attempt a 4th response.
+
+**Expected result:** After the 3rd interviewer response, the templated closing line (`interviewer.demoLimitReached`) is shown; both the voice-record control and the text-input button are gone or disabled; no further `respond` network call can be made.
+
+**Pass/fail:** Pass only if a 4th `respond` request cannot be issued from the UI and the closing line is visible.
+</example>
+
+Fields per case: **ID & title**, **Validates** (file + requirement number), **Setup / preconditions** (flags, remote-config values, mock data, server handlers, seeded accounts), **Steps** (concrete, browser-driven), **Expected result** (visible text, element present/absent, network call made or blocked), **Pass/fail** (an objective criterion an agent can evaluate without judgment).
+
+### Step 4 — Finish
+
+Flip the banner to `Status: Ready for development` in every requirement file (and `index.md`). Delete `_working.md`. Then post:
+
+```
+Requirements finalised at prd/[slug]/. Files: [list]. QA cases in qa-test-cases.md. Ready to plan the implementation when you are.
 ```
 
 ## Operating rules
 
-- **One file per feature.** Everything lives in `prd/[slug].md` — working draft and finalised spec are the same file at different stages. Never create a `-draft` companion or any second file for the same feature.
-- **No duplication.** Every question or decision appears exactly once. Never re-list items in a separate open-items section, a summary, or a recap — the single entry, with its `Status` line, is the source of truth. If you catch yourself writing the same question twice, delete one.
-- **Spec is self-sufficient.** After finalisation, the spec section must be implementable without reading the decision log; promote codebase touchpoints and one-line rationale up into it.
+- **One folder per feature.** Everything lives in `prd/[slug]/`: `_working.md` during cycles; requirement file(s) + `qa-test-cases.md` after finalisation. Never create a `-draft` companion or scatter a feature across folders.
+- **No decision log.** The requirement bodies are complete on their own; keep only a one-line `Why:` on non-obvious requirements, and run the self-sufficiency sweep before finalising. Delete the Q&A at finalisation — do not demote it.
+- **No `Codebase touchpoints` section.** Requirements describe behaviour, constraints, and acceptance — not the call graph or where new code goes.
+- **Split only when independent.** Multiple files only when concerns are independently shippable; otherwise one requirements file.
+- **QA maps to requirements.** Every functional requirement is covered by at least one grouped case in `qa-test-cases.md`.
+- **Two-part draft; no confirmation questions.** What the user already specified goes in **Captured requirements** as statements they can skim. Sections A/B hold only decisions whose answer could change the spec. Never create an item whose only purpose is to confirm a restatement — that is the workflow's primary failure mode. When genuinely unsure whether something needs input, ask; when it's just your understanding of their requirement, capture it.
+- **No duplication.** Every question or decision appears exactly once, tracked by its own `Status` line. Don't restate scope inside the functional requirements.
 - Ground every question in code you read in Phase 2.
-- Output goes to the feature document and short chat messages only — no interactive elicitation tools.
+- Output goes to the feature folder and short chat messages only — no interactive elicitation tools.
 - No implementation code during this workflow.
 - Prefer specificity over completeness theatre.
 - If raw input is very short, note that in the draft and still produce a first pass.
